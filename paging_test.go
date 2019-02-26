@@ -141,6 +141,7 @@ func TestCursor(t *testing.T) {
 	assertf(t, nextProjects[0].ID == 3, "expected first id to be 3, got %d", nextProjects[0].ID)
 	assertf(t, !next.HasNext, "expected to not have a next page")
 }
+
 func TestCursorReverse(t *testing.T) {
 	db := setup(t)
 	defer db.Close()
