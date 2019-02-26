@@ -37,10 +37,10 @@ func setup(t *testing.T) *gorm.DB {
 	return db
 }
 
-func assertf(t *testing.T, ok bool, msg string, args ...interface{}) {
+func assertf(t *testing.T, ok bool, format string, args ...interface{}) {
 	t.Helper()
 	if !ok {
-		t.Errorf(msg, args...)
+		t.Errorf(format, args...)
 	}
 }
 
