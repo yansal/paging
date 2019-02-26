@@ -128,7 +128,7 @@ func TestCursor(t *testing.T) {
 	assertf(t, next.HasNext, "expected to have a next page")
 	nextValue, ok := next.Cursor.Value.(int64)
 	assertf(t, ok,
-		"expected next value type to be int64, got %T", next.Cursor.Value)
+		"expected next cursor type to be int64, got %T", next.Cursor.Value)
 	assertf(t, nextValue == 2,
 		"expected next cursor value to be 2, got %v", nextValue)
 
@@ -166,7 +166,7 @@ func TestCursorReverse(t *testing.T) {
 	assertf(t, next.HasNext, "expected to have a next page")
 	nextID, ok := next.Cursor.Value.(int64)
 	assertf(t, ok,
-		"expected next value type to be int64, got %T", next.Cursor.Value)
+		"expected next cursor type to be int64, got %T", next.Cursor.Value)
 	assertf(t, nextID == 2,
 		"expected next cursor value to be 2, got %v", nextID)
 
@@ -203,7 +203,7 @@ func TestCursorDateCreation(t *testing.T) {
 	assertf(t, next.HasNext, "expected to have a next page")
 	nextValue, ok := next.Cursor.Value.(time.Time)
 	assertf(t, ok,
-		"expected next value type to be time.Time, got %T", next.Cursor.Value)
+		"expected next cursor type to be time.Time, got %T", next.Cursor.Value)
 	assertf(t, nextValue.Equal(projects[1].DateCreation),
 		"expected next cursor value to be %v, got %v", projects[1].DateCreation, nextValue)
 
