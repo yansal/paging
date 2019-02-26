@@ -126,6 +126,11 @@ func TestCursor(t *testing.T) {
 	assertf(t, projects[0].ID == 1, "expected first id to be 1, got %d", projects[0].ID)
 	assertf(t, projects[1].ID == 2, "expected second id to be 2, got %d", projects[1].ID)
 	assertf(t, next.HasNext, "expected to have a next page")
+	nextValue, ok := next.Cursor.Value.(int64)
+	assertf(t, ok,
+		"expected next value type to be int64, got %T", next.Cursor.Value)
+	assertf(t, nextValue == 2,
+		"expected next cursor value to be 2, got %v", nextValue)
 
 	var nextProjects []project
 	next, err = Paginate(store, next, &nextProjects)
@@ -158,6 +163,11 @@ func TestCursorReverse(t *testing.T) {
 	assertf(t, projects[0].ID == 3, "expected first id to be 3, got %d", projects[0].ID)
 	assertf(t, projects[1].ID == 2, "expected second id to be 2, got %d", projects[1].ID)
 	assertf(t, next.HasNext, "expected to have a next page")
+	nextID, ok := next.Cursor.Value.(int64)
+	assertf(t, ok,
+		"expected next value type to be int64, got %T", next.Cursor.Value)
+	assertf(t, nextID == 2,
+		"expected next cursor value to be 2, got %v", nextID)
 
 	var nextProjects []project
 	next, err = Paginate(store, next, &nextProjects)
@@ -190,6 +200,11 @@ func TestCursorDateCreation(t *testing.T) {
 	assertf(t, projects[0].ID == 1, "expected first id to be 1, got %d", projects[0].ID)
 	assertf(t, projects[1].ID == 2, "expected second id to be 2, got %d", projects[1].ID)
 	assertf(t, next.HasNext, "expected to have a next page")
+	nextValue, ok := next.Cursor.Value.(time.Time)
+	assertf(t, ok,
+		"expected next value type to be time.Time, got %T", next.Cursor.Value)
+	assertf(t, nextValue.Equal(projects[1].DateCreation),
+		"expected next cursor value to be %v, got %v", projects[1].DateCreation, nextValue)
 
 	var nextProjects []project
 	next, err = Paginate(store, next, &nextProjects)
