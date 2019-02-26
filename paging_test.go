@@ -6,6 +6,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
+	paginggorm "github.com/yansal/paging/gorm"
 )
 
 type project struct {
@@ -37,6 +38,7 @@ func setup(t *testing.T) *gorm.DB {
 			t.Fatal(err)
 		}
 	}
+	db.LogMode(true)
 	return db
 }
 
@@ -44,8 +46,9 @@ func TestOffset(t *testing.T) {
 	db := setup(t)
 	defer db.Close()
 
+	store := paginggorm.New(db)
 	var projects []project
-	next, err := GORM(db,
+	next, err := Paginate(store,
 		Page{
 			Mode:    OffsetMode,
 			DBField: "date_creation",
@@ -69,7 +72,7 @@ func TestOffset(t *testing.T) {
 	}
 
 	projects = nil
-	next, err = GORM(db, next, &projects)
+	next, err = Paginate(store, next, &projects)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,8 +94,9 @@ func TestOffsetReverse(t *testing.T) {
 	db := setup(t)
 	defer db.Close()
 
+	store := paginggorm.New(db)
 	var projects []project
-	next, err := GORM(db,
+	next, err := Paginate(store,
 		Page{
 			Mode:    OffsetMode,
 			DBField: "date_creation",
@@ -120,7 +124,7 @@ func TestOffsetReverse(t *testing.T) {
 	}
 
 	projects = nil
-	next, err = GORM(db, next, &projects)
+	next, err = Paginate(store, next, &projects)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,8 +143,9 @@ func TestCursor(t *testing.T) {
 	db := setup(t)
 	defer db.Close()
 
+	store := paginggorm.New(db)
 	var projects []project
-	next, err := GORM(db,
+	next, err := Paginate(store,
 		Page{
 			Mode:    CursorMode,
 			DBField: "id",
@@ -168,7 +173,7 @@ func TestCursor(t *testing.T) {
 	}
 
 	projects = nil
-	next, err = GORM(db, next, &projects)
+	next, err = Paginate(store, next, &projects)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,8 +191,9 @@ func TestCursorReverse(t *testing.T) {
 	db := setup(t)
 	defer db.Close()
 
+	store := paginggorm.New(db)
 	var projects []project
-	next, err := GORM(db,
+	next, err := Paginate(store,
 		Page{
 			Mode:    CursorMode,
 			DBField: "id",
@@ -215,7 +221,7 @@ func TestCursorReverse(t *testing.T) {
 	}
 
 	projects = nil
-	next, err = GORM(db, next, &projects)
+	next, err = Paginate(store, next, &projects)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -234,8 +240,9 @@ func TestCursorDateCreation(t *testing.T) {
 	db := setup(t)
 	defer db.Close()
 
+	store := paginggorm.New(db)
 	var projects []project
-	next, err := GORM(db,
+	next, err := Paginate(store,
 		Page{
 			Mode:    CursorMode,
 			DBField: "date_creation",
@@ -262,7 +269,7 @@ func TestCursorDateCreation(t *testing.T) {
 	}
 
 	projects = nil
-	next, err = GORM(db, next, &projects)
+	next, err = Paginate(store, next, &projects)
 	if err != nil {
 		t.Fatal(err)
 	}

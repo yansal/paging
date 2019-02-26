@@ -3,8 +3,6 @@ package paging
 import (
 	"fmt"
 	"reflect"
-
-	"github.com/jinzhu/gorm"
 )
 
 type Mode int
@@ -31,28 +29,36 @@ type Cursor struct {
 	StructField string // used to compute next cursor value
 }
 
-func GORM(db *gorm.DB, page Page, dest interface{}) (next Page, err error) {
+type Store interface {
+	Where(query string, args ...interface{})
+	Order(order string)
+	Limit(limit int64)
+	Offset(offset int64)
+
+	Find(dest interface{}) error
+	Count(count *int64) error
+}
+
+func Paginate(store Store, page Page, dest interface{}) (next Page, err error) {
 	switch page.Mode {
 	case OffsetMode:
-		return gormOffset(db, page, dest)
+		return paginateOffset(store, page, dest)
 	case CursorMode:
-		return gormCursor(db, page, dest)
+		return paginateCursor(store, page, dest)
 	}
 	return page, fmt.Errorf("unknown mode %d", page.Mode)
 }
 
-func gormOffset(db *gorm.DB, page Page, dest interface{}) (Page, error) {
+func paginateOffset(store Store, page Page, dest interface{}) (Page, error) {
 	order := page.DBField
 	if page.Reverse {
 		order = order + " desc"
 	}
 
-	db = db.
-		Order(order).
-		Limit(page.Limit).
-		Offset(page.Offset).
-		Find(dest)
-	if err := db.Error; err != nil {
+	store.Order(order)
+	store.Limit(page.Limit)
+	store.Offset(page.Offset)
+	if err := store.Find(dest); err != nil {
 		return page, err
 	}
 
@@ -64,22 +70,22 @@ func gormOffset(db *gorm.DB, page Page, dest interface{}) (Page, error) {
 		next.HasNext = false
 	}
 
-	if err := db.Limit(-1).Offset(-1).
-		Count(&next.Count).
-		Error; err != nil {
+	store.Limit(-1)
+	store.Offset(-1)
+	if err := store.Count(&next.Count); err != nil {
 		return next, err
 	}
 
 	return next, nil
 }
 
-func gormCursor(db *gorm.DB, page Page, dest interface{}) (Page, error) {
+func paginateCursor(store Store, page Page, dest interface{}) (Page, error) {
 	if page.Cursor.Value != nil {
 		op := ">"
 		if page.Reverse {
 			op = "<"
 		}
-		db = db.Where(page.DBField+" "+op+" ?", page.Cursor.Value)
+		store.Where(page.DBField+" "+op+" ?", page.Cursor.Value)
 	}
 
 	order := page.DBField
@@ -87,11 +93,9 @@ func gormCursor(db *gorm.DB, page Page, dest interface{}) (Page, error) {
 		order = order + " desc"
 	}
 
-	if err := db.
-		Order(order).
-		Limit(page.Limit + 1). // + 1 to compute HasNext
-		Find(dest).
-		Error; err != nil {
+	store.Order(order)
+	store.Limit(page.Limit + 1) // + 1 to compute HasNext
+	if err := store.Find(dest); err != nil {
 		return page, err
 	}
 
