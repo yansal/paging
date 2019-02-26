@@ -14,12 +14,6 @@ type project struct {
 	DateCreation time.Time
 }
 
-var (
-	now          = time.Now()
-	inOneSecond  = now.Add(time.Second)
-	inTwoSeconds = now.Add(2 * time.Second)
-)
-
 func setup(t *testing.T) *gorm.DB {
 	db, err := gorm.Open("sqlite3", ":memory:")
 	if err != nil {
@@ -29,17 +23,25 @@ func setup(t *testing.T) *gorm.DB {
 	if err := db.CreateTable(project{}).Error; err != nil {
 		t.Fatal(err)
 	}
+
+	now := time.Now()
 	for _, p := range []project{
 		{ID: 1, DateCreation: now},
-		{ID: 2, DateCreation: inOneSecond},
-		{ID: 3, DateCreation: inTwoSeconds},
+		{ID: 2, DateCreation: now.Add(time.Second)},
+		{ID: 3, DateCreation: now.Add(2 * time.Second)},
 	} {
 		if err := db.Create(p).Error; err != nil {
 			t.Fatal(err)
 		}
 	}
-	db.LogMode(true)
 	return db
+}
+
+func assertf(t *testing.T, ok bool, msg string, args ...interface{}) {
+	t.Helper()
+	if !ok {
+		t.Errorf(msg, args...)
+	}
 }
 
 func TestOffset(t *testing.T) {
@@ -48,46 +50,28 @@ func TestOffset(t *testing.T) {
 
 	store := paginggorm.New(db)
 	var projects []project
-	next, err := Paginate(store,
-		Page{
-			Mode:    OffsetMode,
-			DBField: "date_creation",
-			Limit:   2,
-		},
-		&projects)
+	next, err := Paginate(store, Page{
+		DBField: "date_creation",
+		Limit:   2,
+	}, &projects)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(projects) != 2 {
-		t.Errorf("expected 2 projects, got %d", len(projects))
-	}
-	if projects[0].ID != 1 {
-		t.Errorf("expected first id to be 1, got %d", projects[0].ID)
-	}
-	if projects[1].ID != 2 {
-		t.Errorf("expected second id to be 2, got %d", projects[1].ID)
-	}
-	if !next.HasNext {
-		t.Error("expected to have a next page")
-	}
+	assertf(t, len(projects) == 2, "expected 2 projects, got %d", len(projects))
+	assertf(t, projects[0].ID == 1, "expected first id to be 1, got %d", projects[0].ID)
+	assertf(t, projects[1].ID == 2, "expected second id to be 2, got %d", projects[1].ID)
+	assertf(t, next.HasNext, "expected to have a next page")
+	assertf(t, next.Count == 3, "expected count to be 3, got %d", next.Count)
 
-	projects = nil
-	next, err = Paginate(store, next, &projects)
+	var nextProjects []project
+	next, err = Paginate(store, next, &nextProjects)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(projects) != 1 {
-		t.Errorf("expected 1 project, got %d", len(projects))
-	}
-	if projects[0].ID != 3 {
-		t.Errorf("expected first id to be 3, got %d", projects[0].ID)
-	}
-	if next.HasNext {
-		t.Error("expected to not have a next page")
-	}
-	if next.Count != 3 {
-		t.Errorf("expected count to be 3, got %d", next.Count)
-	}
+	assertf(t, len(nextProjects) == 1, "expected 1 project, got %d", len(nextProjects))
+	assertf(t, nextProjects[0].ID == 3, "expected first id to be 3, got %d", nextProjects[0].ID)
+	assertf(t, !next.HasNext, "expected to not have a next page")
+	assertf(t, next.Count == 3, "expected count to be 3, got %d", next.Count)
 }
 
 func TestOffsetReverse(t *testing.T) {
@@ -96,47 +80,29 @@ func TestOffsetReverse(t *testing.T) {
 
 	store := paginggorm.New(db)
 	var projects []project
-	next, err := Paginate(store,
-		Page{
-			Mode:    OffsetMode,
-			DBField: "date_creation",
-			Reverse: true,
-			Limit:   2,
-		},
-		&projects)
+	next, err := Paginate(store, Page{
+		DBField: "date_creation",
+		Reverse: true,
+		Limit:   2,
+	}, &projects)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(projects) != 2 {
-		t.Errorf("expected 2 projects, got %d", len(projects))
-	}
-	if projects[0].ID != 3 {
-		t.Errorf("expected first id to be 3, got %d", projects[0].ID)
-	}
-	if projects[1].ID != 2 {
-		t.Errorf("expected second id to be 2, got %d", projects[1].ID)
-	}
-	if !next.HasNext {
-		t.Error("expected to have a next page")
-	}
-	if next.Count != 3 {
-		t.Errorf("expected count to be 3, got %d", next.Count)
-	}
+	assertf(t, len(projects) == 2, "expected 2 projects, got %d", len(projects))
+	assertf(t, projects[0].ID == 3, "expected first id to be 3, got %d", projects[0].ID)
+	assertf(t, projects[1].ID == 2, "expected second id to be 2, got %d", projects[1].ID)
+	assertf(t, next.HasNext, "expected to have a next page")
+	assertf(t, next.Count == 3, "expected count to be 3, got %d", next.Count)
 
-	projects = nil
-	next, err = Paginate(store, next, &projects)
+	var nextProjects []project
+	next, err = Paginate(store, next, &nextProjects)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(projects) != 1 {
-		t.Errorf("expected 1 project, got %d", len(projects))
-	}
-	if projects[0].ID != 1 {
-		t.Errorf("expected first id to be 1, got %d", projects[0].ID)
-	}
-	if next.HasNext {
-		t.Error("expected to not have a next page")
-	}
+	assertf(t, len(nextProjects) == 1, "expected 1 project, got %d", len(nextProjects))
+	assertf(t, nextProjects[0].ID == 1, "expected first id to be 1, got %d", nextProjects[0].ID)
+	assertf(t, !next.HasNext, "expected to not have a next page")
+	assertf(t, next.Count == 3, "expected count to be 3, got %d", next.Count)
 }
 
 func TestCursor(t *testing.T) {
@@ -145,47 +111,30 @@ func TestCursor(t *testing.T) {
 
 	store := paginggorm.New(db)
 	var projects []project
-	next, err := Paginate(store,
-		Page{
-			Mode:    CursorMode,
-			DBField: "id",
-			Cursor: Cursor{
-				StructField: "ID",
-			},
-			Limit: 2,
+	next, err := Paginate(store, Page{
+		Mode:    CursorMode,
+		DBField: "id",
+		Cursor: Cursor{
+			StructField: "ID",
 		},
-		&projects)
+		Limit: 2,
+	}, &projects)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(projects) != 2 {
-		t.Errorf("expected 2 projects, got %d", len(projects))
-	}
-	if projects[0].ID != 1 {
-		t.Errorf("expected first id to be 1, got %d", projects[0].ID)
-	}
-	if projects[1].ID != 2 {
-		t.Errorf("expected second id to be 2, got %d", projects[1].ID)
+	assertf(t, len(projects) == 2, "expected 2 projects, got %d", len(projects))
+	assertf(t, projects[0].ID == 1, "expected first id to be 1, got %d", projects[0].ID)
+	assertf(t, projects[1].ID == 2, "expected second id to be 2, got %d", projects[1].ID)
+	assertf(t, next.HasNext, "expected to have a next page")
 
-	}
-	if !next.HasNext {
-		t.Error("expected to have a next page")
-	}
-
-	projects = nil
-	next, err = Paginate(store, next, &projects)
+	var nextProjects []project
+	next, err = Paginate(store, next, &nextProjects)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(projects) != 1 {
-		t.Errorf("expected 1 project, got %d", len(projects))
-	}
-	if projects[0].ID != 3 {
-		t.Errorf("expected first id to be 3, got %d", projects[0].ID)
-	}
-	if next.HasNext {
-		t.Error("expected to not have a next page")
-	}
+	assertf(t, len(nextProjects) == 1, "expected 1 project, got %d", len(nextProjects))
+	assertf(t, nextProjects[0].ID == 3, "expected first id to be 3, got %d", nextProjects[0].ID)
+	assertf(t, !next.HasNext, "expected to not have a next page")
 }
 func TestCursorReverse(t *testing.T) {
 	db := setup(t)
@@ -193,47 +142,31 @@ func TestCursorReverse(t *testing.T) {
 
 	store := paginggorm.New(db)
 	var projects []project
-	next, err := Paginate(store,
-		Page{
-			Mode:    CursorMode,
-			DBField: "id",
-			Cursor: Cursor{
-				StructField: "ID",
-			},
-			Reverse: true,
-			Limit:   2,
+	next, err := Paginate(store, Page{
+		Mode:    CursorMode,
+		DBField: "id",
+		Cursor: Cursor{
+			StructField: "ID",
 		},
-		&projects)
+		Reverse: true,
+		Limit:   2,
+	}, &projects)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(projects) != 2 {
-		t.Errorf("expected 2 projects, got %d", len(projects))
-	}
-	if projects[0].ID != 3 {
-		t.Errorf("expected first id to be 3, got %d", projects[0].ID)
-	}
-	if projects[1].ID != 2 {
-		t.Errorf("expected second id to be 2, got %d", projects[1].ID)
-	}
-	if !next.HasNext {
-		t.Error("expected to have a next page")
-	}
+	assertf(t, len(projects) == 2, "expected 2 projects, got %d", len(projects))
+	assertf(t, projects[0].ID == 3, "expected first id to be 3, got %d", projects[0].ID)
+	assertf(t, projects[1].ID == 2, "expected second id to be 2, got %d", projects[1].ID)
+	assertf(t, next.HasNext, "expected to have a next page")
 
-	projects = nil
-	next, err = Paginate(store, next, &projects)
+	var nextProjects []project
+	next, err = Paginate(store, next, &nextProjects)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(projects) != 1 {
-		t.Errorf("expected 1 project, got %d", len(projects))
-	}
-	if projects[0].ID != 1 {
-		t.Errorf("expected first id to be 1, got %d", projects[0].ID)
-	}
-	if next.HasNext {
-		t.Error("expected to not have a next page")
-	}
+	assertf(t, len(nextProjects) == 1, "expected 1 project, got %d", len(nextProjects))
+	assertf(t, nextProjects[0].ID == 1, "expected first id to be 1, got %d", nextProjects[0].ID)
+	assertf(t, !next.HasNext, "expected to not have a next page")
 }
 
 func TestCursorDateCreation(t *testing.T) {
@@ -242,44 +175,28 @@ func TestCursorDateCreation(t *testing.T) {
 
 	store := paginggorm.New(db)
 	var projects []project
-	next, err := Paginate(store,
-		Page{
-			Mode:    CursorMode,
-			DBField: "date_creation",
-			Cursor: Cursor{
-				StructField: "DateCreation",
-			},
-			Limit: 2,
+	next, err := Paginate(store, Page{
+		Mode:    CursorMode,
+		DBField: "date_creation",
+		Cursor: Cursor{
+			StructField: "DateCreation",
 		},
-		&projects)
+		Limit: 2,
+	}, &projects)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(projects) != 2 {
-		t.Errorf("expected 2 projects, got %d", len(projects))
-	}
-	if projects[0].ID != 1 {
-		t.Errorf("expected first id to be 1, got %d", projects[0].ID)
-	}
-	if projects[1].ID != 2 {
-		t.Errorf("expected second id to be 2, got %d", projects[1].ID)
-	}
-	if !next.HasNext {
-		t.Error("expected to have a next page")
-	}
+	assertf(t, len(projects) == 2, "expected 2 projects, got %d", len(projects))
+	assertf(t, projects[0].ID == 1, "expected first id to be 1, got %d", projects[0].ID)
+	assertf(t, projects[1].ID == 2, "expected second id to be 2, got %d", projects[1].ID)
+	assertf(t, next.HasNext, "expected to have a next page")
 
-	projects = nil
-	next, err = Paginate(store, next, &projects)
+	var nextProjects []project
+	next, err = Paginate(store, next, &nextProjects)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(projects) != 1 {
-		t.Errorf("expected 1 project, got %d", len(projects))
-	}
-	if projects[0].ID != 3 {
-		t.Errorf("expected first id to be 3, got %d", projects[0].ID)
-	}
-	if next.HasNext {
-		t.Error("expected to not have a next page")
-	}
+	assertf(t, len(nextProjects) == 1, "expected 1 project, got %d", len(nextProjects))
+	assertf(t, nextProjects[0].ID == 3, "expected first id to be 3, got %d", nextProjects[0].ID)
+	assertf(t, !next.HasNext, "expected to not have a next page")
 }
